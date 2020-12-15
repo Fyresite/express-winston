@@ -63,6 +63,7 @@ export interface LoggerOptionsWithTransports extends BaseLoggerOptions {
 
 export interface LoggerOptionsWithWinstonInstance extends BaseLoggerOptions {
     winstonInstance: winston.Logger;
+    useRequestLogger: boolean;
 }
 
 export type LoggerOptions = LoggerOptionsWithTransports | LoggerOptionsWithWinstonInstance;
@@ -93,6 +94,7 @@ export interface ErrorLoggerOptionsWithTransports extends BaseErrorLoggerOptions
 
 export interface ErrorLoggerOptionsWithWinstonInstance extends BaseErrorLoggerOptions {
     winstonInstance: winston.Logger;
+    useRequestLogger: boolean;
 }
 
 export type ErrorLoggerOptions = ErrorLoggerOptionsWithTransports | ErrorLoggerOptionsWithWinstonInstance;

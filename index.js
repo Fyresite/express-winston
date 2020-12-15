@@ -187,6 +187,7 @@ exports.errorLogger = function errorLogger(options) {
     options.blacklistedMetaFields = options.blacklistedMetaFields || [];
     options.skip = options.skip || exports.defaultSkip;
     options.requestField = options.requestField === null || options.requestField === 'null' ? null : options.requestField || exports.requestField;
+    options.useRequestLogger = options.useRequestLogger || false;
 
     // backwards comparability.
     // just in case they're using the same options object as exports.logger.
@@ -197,7 +198,7 @@ exports.errorLogger = function errorLogger(options) {
 
     return function (err, req, res, next) {
         // Let winston gather all the error data
-        var exceptionMeta = _.omit(options.exceptionToMeta(err), options.blacklistedMetaFields);
+        var exceptionMeta = _.omit(getErrorHandler(req, options)(err), options.blacklistedMetaFields);
         if (options.meta !== false) {
             if (options.requestField !== null) {
                 exceptionMeta[options.requestField] = filterObject(req, options.requestWhitelist, options.headerBlacklist, options.requestFilter);
@@ -229,7 +230,7 @@ exports.errorLogger = function errorLogger(options) {
 
         if (!options.skip(req, res, err)) {
             // This is fire and forget, we don't want logging to hold up the request so don't wait for the callback
-            options.winstonInstance.log(_.merge(exceptionMeta, {
+            getLogger(req, options).log(_.merge(exceptionMeta, {
                 level,
                 message: template({ err: err, req: req, res: res }),
             }));
@@ -282,6 +283,7 @@ exports.logger = function logger(options) {
     options.dynamicMeta = options.dynamicMeta || function (req, res) { return null; };
     options.requestField = options.requestField === null || options.requestField === 'null' ? null : options.requestField || exports.requestField;
     options.responseField = options.responseField === null || options.responseField === 'null' ? null : options.responseField || exports.responseField;
+    options.useRequestLogger = options.useRequestLogger || false;
 
     // Using mustache style templating
     var template = getTemplate(options, {
@@ -421,7 +423,7 @@ exports.logger = function logger(options) {
             // This is fire and forget, we don't want logging to hold up the request so don't wait for the callback
             if (!options.skip(req, res)) {
                 var level = _.isFunction(options.level) ? options.level(req, res) : options.level;
-                options.winstonInstance.log(_.merge(meta, { level, message: msg }));
+                getLogger(req, options).log(_.merge(meta, { level, message: msg }));
             }
         };
 
@@ -459,4 +461,13 @@ function ensureValidLoggerOptions(options) {
     if (options.ignoreRoute && !_.isFunction(options.ignoreRoute)) {
         throw new Error('`ignoreRoute` express-winston option should be a function');
     }
+}
+
+function getLogger(req, options) {
+    if (req.logger && options.useRequestLogger) return req.logger;
+    return options.winstonInstance;
+}
+function getErrorHandler(req, options) {
+    if (req.errorHandler && options.useRequestLogger) return req.errorHandler;
+    return options.exceptionToMeta;
 }
